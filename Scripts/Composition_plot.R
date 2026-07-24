@@ -65,6 +65,13 @@ top_taxa <- 15
 group_var <- "group"
 day_var <- "day"
 
+#############################################################
+## Experiment selection
+#############################################################
+
+## Use NULL to analyse all samples
+experiment <- NULL
+
 ## Export options
 figure_width  <- 8
 figure_height <- 5
@@ -103,9 +110,12 @@ if (!is.null(experiment)) {
 
 }
 
-## Remove empty taxa
+## Remove taxa with zero counts
 
-ps <- prune_taxa(taxa_sums(ps) > 0, ps)
+ps <- prune_taxa(
+  taxa_sums(ps) > 0,
+  ps
+)
 
 ## Transform counts to relative abundance
 
@@ -113,6 +123,45 @@ ps.rel <- transform_sample_counts(
   ps,
   function(x) x / sum(x)
 )
+
+## Aggregate taxa
+
+ps.rel <- tax_glom(
+  ps.rel,
+  taxrank = tax_level,
+  NArm = FALSE
+)
+
+## Convert phyloseq object to data frame
+
+df <- psmelt(ps.rel)
+
+## Check required columns
+
+required_columns <- c(
+  "Sample",
+  "Abundance",
+  group_var,
+  day_var,
+  tax_level
+)
+
+missing_columns <- setdiff(
+  required_columns,
+  colnames(df)
+)
+
+if (length(missing_columns) > 0) {
+
+  stop(
+    paste(
+      "Missing columns:",
+      paste(missing_columns,
+            collapse = ", ")
+    )
+  )
+
+}
 
 #############################################################
 ## 4. Mean abundance calculation
