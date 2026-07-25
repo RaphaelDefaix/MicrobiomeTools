@@ -8,7 +8,7 @@
 #  Author      : Raphael Defaix
 #  Repository  : https://github.com/RaphaelDefaix/MicrobiomeTools
 #
-#  Version     : 0.1.0
+#  Version     : 0.9.0
 #  Created     : July 2026
 #  Description :
 #
@@ -19,12 +19,12 @@
 ## CHANGELOG
 #############################################################
 
-# v0.1.0
+# v0.9.0
 #
-# - First reference script
-# - Manual colour palette
-# - Top taxa selection
-# - Publication-quality figure
+# - Added input validation
+# - Added parameter validation
+# - Improved code consistency
+# - Automatic plot display
 
 #############################################################
 ## Required input
@@ -71,6 +71,15 @@ top_taxa <- 15
   group_var <- "group"
   day_var <- "day"
 
+## Day order
+day_order <- c(
+  "d-4",
+  "d-1",
+  "d1",
+  "d7",
+  "d13"
+)
+
 #############################################################
 #############################################################
 
@@ -83,7 +92,7 @@ top_taxa <- 15
 experiment <- NULL
 
 ## Export options
-figure_width  <- 8
+figure_width  <- 10
 figure_height <- 5
 figure_dpi    <- 600
 
@@ -100,6 +109,43 @@ output_directory <- "Figures"
 #############################################################
 ## End of user parameters
 #############################################################
+
+#############################################################
+## Validate user parameters
+#############################################################
+
+valid_tax_levels <- c(
+  "Kingdom",
+  "Phylum",
+  "Class",
+  "Order",
+  "Family",
+  "Genus",
+  "Species"
+)
+
+if (!tax_level %in% valid_tax_levels) {
+
+  stop(
+    paste(
+      "Invalid tax_level:",
+      tax_level
+    )
+  )
+
+}
+
+#############################################################
+## Check required input
+#############################################################
+
+if (!exists("ps1")) {
+
+  stop(
+    "The phyloseq object 'ps1' was not found."
+  )
+
+}
 
 #############################################################
 ## 4. Data preparation
@@ -127,6 +173,14 @@ ps <- prune_taxa(
   ps
 )
 
+if (nsamples(ps) == 0) {
+
+  stop(
+    "No samples found after filtering."
+  )
+
+}
+
 ## Transform counts to relative abundance
 
 ps.rel <- transform_sample_counts(
@@ -150,21 +204,26 @@ df <- psmelt(ps.rel)
 ## Create Taxon column
 #############################################################
 
-df$Taxon <- case_when(
+df <- df %>%
+  mutate(
 
-  !is.na(df[[tax_level]]) ~ df[[tax_level]],
+    Taxon = case_when(
 
-  !is.na(df$Family) ~ paste0("Unclassified_", df$Family),
+      !is.na(.data[[tax_level]]) ~ .data[[tax_level]],
 
-  !is.na(df$Order) ~ paste0("Unclassified_", df$Order),
+      !is.na(Family) ~ paste0("Unclassified_", Family),
 
-  !is.na(df$Class) ~ paste0("Unclassified_", df$Class),
+      !is.na(Order) ~ paste0("Unclassified_", Order),
 
-  !is.na(df$Phylum) ~ paste0("Unclassified_", df$Phylum),
-  
-  TRUE ~ "Unknown"
+      !is.na(Class) ~ paste0("Unclassified_", Class),
 
-)
+      !is.na(Phylum) ~ paste0("Unclassified_", Phylum),
+
+      TRUE ~ "Unknown"
+
+    )
+
+  )
 
 ## Check required columns
 
@@ -328,71 +387,92 @@ taxon_colors <- taxon_colors[
 ## 8. Create figure
 #############################################################
 
-composition_plot <- ggplot(
-  df_plot,
-  aes(
-    x = .data[[day_var]],
-    y = MeanAbundance,
-    fill = Taxon
+  df_plot[[day_var]] <- factor(
+    df_plot[[day_var]],
+    levels = day_order
   )
-) +
-
-  geom_col(
+  
+  composition_plot <- ggplot(
+    df_plot,
+    aes(
+      x = .data[[day_var]],
+      y = MeanAbundance,
+      fill = Taxon
+    )
+  ) +
+  
+    geom_col(
     colour = "black",
-    linewidth = 0.2
-  ) +
-
-  facet_wrap(
-    vars(.data[[group_var]]),
-    nrow = 1
-  ) +
-
-  scale_y_continuous(
-    labels = scales::percent_format(accuracy = 1),
-    expand = c(0, 0)
-  ) +
-
-  scale_fill_manual(
-    values = taxon_colors
-  ) +
-
-  labs(
-    title = figure_title,
-    x = "Day",
-    y = "Relative abundance",
-    fill = tax_level
-  ) +
-
-  theme_bw() +
-
-  theme(
-
+    linewidth = 0.2,
+    width = 0.9
+    ) +
+  
+    facet_wrap(
+      vars(.data[[group_var]]),
+      nrow = 1
+    ) +
+  
+    scale_y_continuous(
+      labels = scales::percent_format(accuracy = 1),
+      expand = c(0, 0.02)
+    ) +
+  
+    scale_fill_manual(
+      values = taxon_colors
+    ) +
+  
+    labs(
+      title = figure_title,
+      x = "Day",
+      y = "Relative abundance",
+      fill = tax_level
+    ) +
+  
+    theme_bw() +
+  
+    theme(
+  
     panel.grid = element_blank(),
-
+  
+    axis.text = element_text(size = 11),
+  
+    axis.title = element_text(size = 12),
+  
     axis.text.x = element_text(
       angle = 45,
       hjust = 1
     ),
-
+  
     strip.background = element_rect(
       fill = "grey90",
       colour = "black"
     ),
-
+  
     strip.text = element_text(
-      face = "bold"
+      face = "bold",
+      size = 12
     ),
-
+  
     legend.title = element_text(
-      face = "bold"
+      face = "bold",
+      size = 12
     ),
-
+  
+    legend.text = element_text(
+      size = 10
+    ),
+  
     plot.title = element_text(
       face = "bold",
+      size = 14,
       hjust = 0.5
     )
-
+  
   )
+  
+    
+  
+  composition_plot
 
 #############################################################
 ## 9. Export figure
