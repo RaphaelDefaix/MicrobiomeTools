@@ -8,7 +8,7 @@
 #  Author      : Raphael Defaix
 #  Repository  : https://github.com/RaphaelDefaix/MicrobiomeTools
 #
-#  Version     : 0.9.0
+#  Version     : 1.0.0
 #  Created     : July 2026
 #  Description :
 #
