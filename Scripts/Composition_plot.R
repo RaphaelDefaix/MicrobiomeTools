@@ -47,6 +47,7 @@
 
 library(dplyr)
 library(ggplot2)
+library(grid)
 library(phyloseq)
 library(RColorBrewer)
 library(scales)
@@ -80,6 +81,19 @@ day_order <- c(
   "d13"
 )
 
+## Group order
+group_order <- c(
+  "untreated",
+  "WT",
+  "lsrK",
+  "lsrR"
+)
+
+df_plot[[group_var]] <- factor(
+  df_plot[[group_var]],
+  levels = group_order
+)
+
 #############################################################
 #############################################################
 
@@ -92,7 +106,7 @@ day_order <- c(
 experiment <- NULL
 
 ## Export options
-figure_width  <- 10
+figure_width  <- 12
 figure_height <- 5
 figure_dpi    <- 600
 
@@ -320,15 +334,44 @@ df_plot <- df_mean %>%
     .groups = "drop"
   )
 
-## Calculate the final abundance table
+#############################################################
+## Biological ordering of taxa
+#############################################################
 
 taxa_order <- df_plot %>%
-  group_by(Taxon) %>%
+
+  left_join(
+    taxon_phylum,
+    by = "Taxon"
+  ) %>%
+
+  mutate(
+
+    Phylum = factor(
+      Phylum,
+      levels = phylum_order
+    )
+
+  ) %>%
+
+  group_by(
+    Phylum,
+    Taxon
+  ) %>%
+
   summarise(
     TotalAbundance = sum(MeanAbundance),
     .groups = "drop"
   ) %>%
-  arrange(desc(TotalAbundance)) %>%
+
+  arrange(
+
+    Phylum,
+
+    desc(TotalAbundance)
+
+  ) %>%
+
   pull(Taxon)
 
 ## Always display "Other" last
@@ -346,32 +389,135 @@ df_plot$Taxon <- factor(
 )
 
 #############################################################
+## Taxon - Phylum correspondence
+#############################################################
+
+taxon_phylum <- tibble(
+
+  Taxon = c(
+
+    "Unclassified_Muribaculaceae",
+    "Muribaculum",
+    "Bacteroides",
+    "Parabacteroides",
+    "Prevotellaceae UCG-001",
+    "Alistipes",
+
+    "Akkermansia",
+
+    "Lachnospiraceae NK4A136 group",
+    "Blautia",
+    "Dubosiella",
+
+    "Escherichia-Shigella",
+    "Proteus",
+    "Unclassified_Enterobacteriaceae"
+
+  ),
+
+  Phylum = c(
+
+    "Bacteroidota",
+    "Bacteroidota",
+    "Bacteroidota",
+    "Bacteroidota",
+    "Bacteroidota",
+    "Bacteroidota",
+
+    "Verrucomicrobiota",
+
+    "Bacillota",
+    "Bacillota",
+    "Bacillota",
+
+    "Pseudomonadota",
+    "Pseudomonadota",
+    "Pseudomonadota"
+
+  )
+
+)
+
+#############################################################
+## Phylum order
+#############################################################
+
+phylum_order <- c(
+
+  "Bacteroidota",
+
+  "Bacillota",
+
+  "Pseudomonadota",
+
+  "Verrucomicrobiota"
+
+)
+
+
+#############################################################
 ## 7. Colour palette
 #############################################################
 
 ## Default colour palette
 
+#############################################################
+## Official MicrobiomeTools palette v1.0
+#############################################################
+
 taxon_colors <- c(
 
-  "Unclassified_Muribaculaceae"     = "#D55E00",
-  "Muribaculum"                     = "#E69F00",
-  "Parasutterella"                  = "#00BFC4",
-  "Bacteroides"                     = "#0072B2",
-  "Parabacteroides"                 = "#56B4E9",
-  "Prevotellaceae UCG-001"          = "#009E73",
-  "Alistipes"                       = "#66A61E",
+  ###########################################################
+  ## Bacteroidota
+  ###########################################################
 
-  "Akkermansia"                     = "#CC79A7",
+  "Unclassified_Muribaculaceae"     = "#D55E00",   # orange foncé
 
-  "Blautia"                         = "#7570B3",
-  "Lachnospiraceae NK4A136 group"   = "#8DA0CB",
-  "Colidextribacter"                = "#A6761D",
+  "Muribaculum"                     = "#F0A202",   # orange clair
+
+  "Bacteroides"                     = "#0072B2",   # bleu foncé
+
+  "Parabacteroides"                 = "#56B4E9",   # bleu clair
+
+  "Prevotellaceae UCG-001"          = "#00A6D6",   # bleu turquoise
+
+  "Alistipes"                       = "#2A9D8F",   # bleu-vert
+
+
+  ###########################################################
+  ## Bacillota
+  ###########################################################
+
+  "Lachnospiraceae NK4A136 group"   = "#5E3C99",   # violet foncé
+
+  "Blautia"                         = "#8073AC",   # violet
+
+  "Dubosiella"                      = "#B2ABD2",   # lavande
+
+
+  ###########################################################
+  ## Verrucomicrobiota
+  ###########################################################
+
+  "Akkermansia"                     = "#009E73",
+
+
+  ###########################################################
+  ## Pseudomonadota
+  ###########################################################
 
   "Escherichia-Shigella"            = "#E41A1C",
-  "Unclassified_Enterobacteriaceae" = "#FB8072",
+
   "Proteus"                         = "#A50F15",
 
-  "Dubosiella"                      = "#1B9E77",
+  "Unclassified_Enterobacteriaceae" = "#FB8072",
+
+
+  ###########################################################
+  ## Others
+  ###########################################################
+
+  "Colidextribacter"                = "#A6761D",
 
   "Other"                           = "grey80"
 
@@ -387,10 +533,15 @@ taxon_colors <- taxon_colors[
 ## 8. Create figure
 #############################################################
 
-  df_plot[[day_var]] <- factor(
-    df_plot[[day_var]],
-    levels = day_order
-  )
+df_plot[[day_var]] <- factor(
+  df_plot[[day_var]],
+  levels = day_order
+)
+
+df_plot[[group_var]] <- factor(
+  df_plot[[group_var]],
+  levels = group_order
+)
   
   composition_plot <- ggplot(
     df_plot,
@@ -408,13 +559,17 @@ taxon_colors <- taxon_colors[
     ) +
   
     facet_wrap(
-      vars(.data[[group_var]]),
-      nrow = 1
-    ) +
+  vars(.data[[group_var]]),
+  nrow = 1,
+  scales = "free_x"
+) +
+scale_x_discrete(drop = TRUE) +
   
     scale_y_continuous(
       labels = scales::percent_format(accuracy = 1),
-      expand = c(0, 0.02)
+      expand = expansion(
+      mult = c(0, 0.02)
+    )
     ) +
   
     scale_fill_manual(
@@ -431,45 +586,76 @@ taxon_colors <- taxon_colors[
     theme_bw() +
   
     theme(
-  
-    panel.grid = element_blank(),
-  
-    axis.text = element_text(size = 11),
-  
-    axis.title = element_text(size = 12),
-  
-    axis.text.x = element_text(
-      angle = 45,
-      hjust = 1
-    ),
-  
-    strip.background = element_rect(
-      fill = "grey90",
-      colour = "black"
-    ),
-  
-    strip.text = element_text(
-      face = "bold",
-      size = 12
-    ),
-  
-    legend.title = element_text(
-      face = "bold",
-      size = 12
-    ),
-  
-    legend.text = element_text(
-      size = 10
-    ),
-  
-    plot.title = element_text(
-      face = "bold",
-      size = 14,
-      hjust = 0.5
-    )
-  
+
+  ## Background
+  panel.grid = element_blank(),
+
+  panel.border = element_rect(
+    colour = "black",
+    linewidth = 0.6,
+    fill = NA
+  ),
+
+  ## Axes
+  axis.line = element_line(
+    colour = "black",
+    linewidth = 0.8
+  ),
+
+  axis.ticks = element_line(
+    colour = "black",
+    linewidth = 0.8
+  ),
+
+  axis.text = element_text(
+    size = 11,
+    face = "plain",
+    colour = "black"
+  ),
+
+  axis.text.x = element_text(
+    angle = 45,
+    hjust = 1,
+    face = "plain",
+    colour = "black",
+    size = 11
+  ),
+
+  axis.title = element_text(
+    size = 12,
+    face = "plain",
+    colour = "black"
+  ),
+
+  ## Facets
+  strip.background = element_blank(),
+
+  strip.text = element_text(
+    face = "bold",
+    size = 12,
+    colour = "black"
+  ),
+
+  panel.spacing = unit(0.4, "lines"),
+
+  ## Legend
+  legend.title = element_text(
+    face = "bold",
+    size = 12
+  ),
+
+  legend.text = element_text(
+    size = 10
+  ),
+
+  ## Title
+  plot.title = element_text(
+    face = "bold",
+    size = 14,
+    hjust = 0.5
   )
-  
+
+)
     
   
   composition_plot
