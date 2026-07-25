@@ -1,5 +1,5 @@
-# Scripts
+# MicrobiomeTools
 
-Reference scripts used during the development of MicrobiomeTools.
+[Badge version] [Badge licence] [Badge R]
 
-These scripts represent validated analysis workflows before conversion into package functions.
+A reproducible R toolkit for microbiome analysis and publication-quality figures.
