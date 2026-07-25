@@ -54,6 +54,8 @@ library(scales)
 library(stringr)
 library(tidyr)
 
+source("R/microbiome_palette.R")
+
 #############################################################
 ## Modify only the parameters below
 #############################################################
@@ -465,63 +467,7 @@ phylum_order <- c(
 ## Official MicrobiomeTools palette v1.0
 #############################################################
 
-taxon_colors <- c(
-
-  ###########################################################
-  ## Bacteroidota
-  ###########################################################
-
-  "Unclassified_Muribaculaceae"     = "#D55E00",   # orange foncé
-
-  "Muribaculum"                     = "#F0A202",   # orange clair
-
-  "Bacteroides"                     = "#0072B2",   # bleu foncé
-
-  "Parabacteroides"                 = "#56B4E9",   # bleu clair
-
-  "Prevotellaceae UCG-001"          = "#00A6D6",   # bleu turquoise
-
-  "Alistipes"                       = "#2A9D8F",   # bleu-vert
-
-
-  ###########################################################
-  ## Bacillota
-  ###########################################################
-
-  "Lachnospiraceae NK4A136 group"   = "#5E3C99",   # violet foncé
-
-  "Blautia"                         = "#8073AC",   # violet
-
-  "Dubosiella"                      = "#B2ABD2",   # lavande
-
-
-  ###########################################################
-  ## Verrucomicrobiota
-  ###########################################################
-
-  "Akkermansia"                     = "#009E73",
-
-
-  ###########################################################
-  ## Pseudomonadota
-  ###########################################################
-
-  "Escherichia-Shigella"            = "#E41A1C",
-
-  "Proteus"                         = "#A50F15",
-
-  "Unclassified_Enterobacteriaceae" = "#FB8072",
-
-
-  ###########################################################
-  ## Others
-  ###########################################################
-
-  "Colidextribacter"                = "#A6761D",
-
-  "Other"                           = "grey80"
-
-)
+taxon_colors <- microbiome_palette()
 
 ## Keep only colours corresponding to displayed taxa
 
