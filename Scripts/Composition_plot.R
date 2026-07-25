@@ -19,7 +19,7 @@
 ## CHANGELOG
 #############################################################
 
-# v0.9.0
+# v1.0.0
 #
 # - Added input validation
 # - Added parameter validation
