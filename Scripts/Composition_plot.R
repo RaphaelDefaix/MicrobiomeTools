@@ -21,10 +21,13 @@
 
 # v1.0.0
 #
-# - Added input validation
+# - Added microbiome_palette()
+# - Added microbiome_theme()
+# - Added biological taxon ordering
 # - Added parameter validation
-# - Improved code consistency
-# - Automatic plot display
+# - Added input validation
+# - Improved code readability
+# - Automatic figure display
 
 #############################################################
 ## Required input
@@ -49,12 +52,15 @@ library(dplyr)
 library(ggplot2)
 library(grid)
 library(phyloseq)
-library(RColorBrewer)
 library(scales)
-library(stringr)
 library(tidyr)
 
+#############################################################
+## Load MicrobiomeTools functions
+#############################################################
+
 source("R/microbiome_palette.R")
+source("R/microbiome_theme.R")
 
 #############################################################
 ## Modify only the parameters below
@@ -89,11 +95,6 @@ group_order <- c(
   "WT",
   "lsrK",
   "lsrR"
-)
-
-df_plot[[group_var]] <- factor(
-  df_plot[[group_var]],
-  levels = group_order
 )
 
 #############################################################
@@ -337,60 +338,6 @@ df_plot <- df_mean %>%
   )
 
 #############################################################
-## Biological ordering of taxa
-#############################################################
-
-taxa_order <- df_plot %>%
-
-  left_join(
-    taxon_phylum,
-    by = "Taxon"
-  ) %>%
-
-  mutate(
-
-    Phylum = factor(
-      Phylum,
-      levels = phylum_order
-    )
-
-  ) %>%
-
-  group_by(
-    Phylum,
-    Taxon
-  ) %>%
-
-  summarise(
-    TotalAbundance = sum(MeanAbundance),
-    .groups = "drop"
-  ) %>%
-
-  arrange(
-
-    Phylum,
-
-    desc(TotalAbundance)
-
-  ) %>%
-
-  pull(Taxon)
-
-## Always display "Other" last
-
-taxa_order <- c(
-  setdiff(taxa_order, "Other"),
-  "Other"
-)
-
-## Convert Taxon to ordered factor
-
-df_plot$Taxon <- factor(
-  df_plot$Taxon,
-  levels = rev(taxa_order)
-)
-
-#############################################################
 ## Taxon - Phylum correspondence
 #############################################################
 
@@ -456,15 +403,56 @@ phylum_order <- c(
 
 )
 
+#############################################################
+## Biological ordering of taxa
+#############################################################
+
+taxa_order <- df_plot %>%
+
+  left_join(
+    taxon_phylum,
+    by = "Taxon"
+  ) %>%
+
+  mutate(
+    Phylum = factor(
+      Phylum,
+      levels = phylum_order
+    )
+  ) %>%
+
+  group_by(
+    Phylum,
+    Taxon
+  ) %>%
+
+  summarise(
+    TotalAbundance = sum(MeanAbundance),
+    .groups = "drop"
+  ) %>%
+
+  arrange(
+    Phylum,
+    desc(TotalAbundance)
+  ) %>%
+
+  pull(Taxon)
+
+taxa_order <- c(
+  setdiff(taxa_order, "Other"),
+  "Other"
+)
+
+df_plot$Taxon <- factor(
+  df_plot$Taxon,
+  levels = rev(taxa_order)
+)
 
 #############################################################
 ## 7. Colour palette
 #############################################################
-
-## Default colour palette
-
 #############################################################
-## Official MicrobiomeTools palette v1.0
+## Official MicrobiomeTools palette
 #############################################################
 
 taxon_colors <- microbiome_palette()
@@ -489,120 +477,46 @@ df_plot[[group_var]] <- factor(
   levels = group_order
 )
   
-  composition_plot <- ggplot(
-    df_plot,
-    aes(
-      x = .data[[day_var]],
-      y = MeanAbundance,
-      fill = Taxon
-    )
-  ) +
-  
-    geom_col(
-    colour = "black",
-    linewidth = 0.2,
-    width = 0.9
-    ) +
-  
-    facet_wrap(
+composition_plot <- ggplot(
+  df_plot,
+  aes(
+    x = .data[[day_var]],
+    y = MeanAbundance,
+    fill = Taxon
+  )
+) +
+
+geom_col(
+  colour = "black",
+  linewidth = 0.2,
+  width = 0.9
+) +
+
+facet_wrap(
   vars(.data[[group_var]]),
   nrow = 1,
   scales = "free_x"
 ) +
+
 scale_x_discrete(drop = TRUE) +
-  
-    scale_y_continuous(
-      labels = scales::percent_format(accuracy = 1),
-      expand = expansion(
-      mult = c(0, 0.02)
-    )
-    ) +
-  
-    scale_fill_manual(
-      values = taxon_colors
-    ) +
-  
-    labs(
-      title = figure_title,
-      x = "Day",
-      y = "Relative abundance",
-      fill = tax_level
-    ) +
-  
-    theme_bw() +
-  
-    theme(
 
-  ## Background
-  panel.grid = element_blank(),
+scale_y_continuous(
+  labels = scales::percent_format(accuracy = 1),
+  expand = expansion(mult = c(0, 0.02))
+) +
 
-  panel.border = element_rect(
-    colour = "black",
-    linewidth = 0.6,
-    fill = NA
-  ),
+scale_fill_manual(
+  values = taxon_colors
+) +
 
-  ## Axes
-  axis.line = element_line(
-    colour = "black",
-    linewidth = 0.8
-  ),
+labs(
+  title = figure_title,
+  x = "Day",
+  y = "Relative abundance",
+  fill = tax_level
+) +
 
-  axis.ticks = element_line(
-    colour = "black",
-    linewidth = 0.8
-  ),
-
-  axis.text = element_text(
-    size = 11,
-    face = "plain",
-    colour = "black"
-  ),
-
-  axis.text.x = element_text(
-    angle = 45,
-    hjust = 1,
-    face = "plain",
-    colour = "black",
-    size = 11
-  ),
-
-  axis.title = element_text(
-    size = 12,
-    face = "plain",
-    colour = "black"
-  ),
-
-  ## Facets
-  strip.background = element_blank(),
-
-  strip.text = element_text(
-    face = "bold",
-    size = 12,
-    colour = "black"
-  ),
-
-  panel.spacing = unit(0.4, "lines"),
-
-  ## Legend
-  legend.title = element_text(
-    face = "bold",
-    size = 12
-  ),
-
-  legend.text = element_text(
-    size = 10
-  ),
-
-  ## Title
-  plot.title = element_text(
-    face = "bold",
-    size = 14,
-    hjust = 0.5
-  )
-
-)
-    
+microbiome_theme()
   
   composition_plot
 
