@@ -2,7 +2,7 @@
 
 ## Select one experiment only
 ## Example:
-## experiment <- "RD09"
+## experiment <- "RD10"
 ##
 ## Use NULL to analyse all samples
 
@@ -230,9 +230,26 @@ df <- psmelt(ps.rel)
 #############################################################
 
 df <- df %>%
-    mutate(
-    Taxon = .data[[tax_level]]
+  mutate(
+    Taxon = ifelse(
+      is.na(.data[[tax_level]]),
+      "Unclassified",
+      as.character(.data[[tax_level]])
     )
+  ) %>%
+  mutate(
+    Taxon = recode(
+      Taxon,
+      "Firmicutes"       = "Bacillota",
+      "Proteobacteria"   = "Pseudomonadota",
+      "Actinobacteriota" = "Actinomycetota", 
+      "Bacteroidetes"      = "Bacteroidota",
+      "Epsilonbacteraeota" = "Campylobacterota"
+    )
+  )
+#############################################################
+## Create Taxon column
+#############################################################
 
 ## Check required columns
 
@@ -331,85 +348,40 @@ df_plot <- df_mean %>%
 
 
 #############################################################
-## Phylum order
+## Biological order of phyla
 #############################################################
 
 phylum_order <- c(
 
-  "Bacteroidota",
+"Bacteroidota",
 
-  "Bacillota",
+"Bacillota",
 
-  "Pseudomonadota",
+"Pseudomonadota",
 
-  "Verrucomicrobiota"
+"Verrucomicrobiota",
 
-)
+"Actinomycetota",
 
-#############################################################
-## Biological ordering of taxa
-#############################################################
+"Desulfobacterota",
 
-taxa_order <- df_plot %>%
+"Campylobacterota",
 
-  left_join(
-    taxon_phylum,
-    by = "Taxon"
-  ) %>%
+"Fusobacteriota",
 
-  mutate(
-    Phylum = factor(
-      Phylum,
-      levels = phylum_order
-    )
-  ) %>%
+"Patescibacteria",
 
-  group_by(
-    Phylum,
-    Taxon
-  ) %>%
+"Deferribacterota",
 
-  summarise(
-    TotalAbundance = sum(MeanAbundance),
-    .groups = "drop"
-  ) %>%
+"Unclassified",
 
-  arrange(
-    Phylum,
-    desc(TotalAbundance)
-  ) %>%
+"Other"
 
-  pull(Taxon)
-
-taxa_order <- c(
-  setdiff(taxa_order, "Other"),
-  "Other"
 )
 
 df_plot$Taxon <- factor(
-
-    df_plot$Taxon,
-
-    levels=c(
-
-        "Bacteroidota",
-
-        "Bacillota",
-
-        "Pseudomonadota",
-
-        "Verrucomicrobiota",
-
-        "Actinomycetota",
-
-        "Desulfobacterota",
-
-        "Deferribacterota",
-
-        "Other"
-
-    )
-
+  df_plot$Taxon,
+  levels = rev(phylum_order)
 )
 #############################################################
 ## 7. Colour palette
@@ -423,21 +395,20 @@ phylum_palette <- c(
 "Bacteroidota"      ="#2171B5",
 
 "Bacillota"         ="#31A354",
-"Firmicutes"        ="#31A354",
 
 "Pseudomonadota"    ="#CB181D",
-"Proteobacteria"    ="#CB181D",
 
 "Verrucomicrobiota" ="#F16913",
 
 "Actinomycetota"    ="#756BB1",
-"Actinobacteria"   ="#756BB1",
 
 "Desulfobacterota"  ="#8C6D31",
 
 "Deferribacterota"  ="#E67E22",
 
-"Other"             ="grey80"
+"Unclassified"      ="grey70",
+
+"Other"             ="grey90"
 
 )
 
@@ -447,6 +418,15 @@ taxon_colors <- phylum_palette[
     levels(df_plot$Taxon)
 ]
 
+if(any(is.na(taxon_colors))){
+
+  warning(
+    "Some displayed phyla have no defined colour."
+  )
+
+  print(levels(df_plot$Taxon)[is.na(taxon_colors)])
+
+}
 
 #############################################################
 ## 8. Create figure
