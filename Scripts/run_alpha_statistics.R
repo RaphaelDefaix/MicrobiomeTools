@@ -13,11 +13,16 @@ run_alpha_statistics <- function(
 
   results <- list()
 
-  ## Days with at least two groups
-  days_to_compare <- alpha_long %>%
-    filter(.data[[group_var]] != "untreated") %>%
-    distinct(.data[[day_var]]) %>%
-    pull()
+ days_to_compare <- levels(alpha_long[[day_var]])
+
+days_to_compare <- days_to_compare[
+  days_to_compare %in%
+    unique(as.character(
+      alpha_long[[day_var]][
+        alpha_long[[group_var]] != "untreated"
+      ]
+    ))
+]
 
   for(index in alpha_indices){
 
