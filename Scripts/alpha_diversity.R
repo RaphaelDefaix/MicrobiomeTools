@@ -42,6 +42,7 @@ library(tidyr)
 
 source("R/microbiome_palette.R")
 source("R/microbiome_theme.R")
+source("R/run_alpha_statistics.R")
 
 #############################################################
 ## Parameters
@@ -162,7 +163,16 @@ alpha_long <- alpha_df %>%
 
   )
 
+#############################################################
+## Statistical analysis
+#############################################################
 
+alpha_stats <- run_alpha_statistics(
+    alpha_long = alpha_long,
+    group_var = group_var,
+    day_var = day_var,
+    alpha_indices = alpha_indices
+)
 
 
 #############################################################
