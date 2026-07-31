@@ -1,4 +1,10 @@
 #############################################################
+## Input object
+#############################################################
+
+ps3 <- physeq_RD10
+
+#############################################################
 
 ## Select one experiment only
 ## Example:
@@ -181,13 +187,13 @@ if (!exists("ps1")) {
 if (!is.null(experiment)) {
 
   ps <- subset_samples(
-    ps1,
+    ps3,
     exp == experiment
   )
 
 } else {
 
-  ps <- ps1
+  ps <- ps3
 
 }
 
