@@ -41,11 +41,8 @@ library(ggplot2)
 library(ggsignif)
 library(tidyr)
 
-source("R/export_alpha_statistics.R")
 source("R/microbiome_palette.R")
 source("R/microbiome_theme.R")
-source("R/run_alpha_statistics.R")
-source("R/prepare_alpha_annotations.R")
 
 #############################################################
 ## Parameters
@@ -168,70 +165,14 @@ alpha_long <- alpha_df %>%
 
   )
 
-
-#############################################################
-## Statistical analysis
-#############################################################
-
-alpha_stats <- run_alpha_statistics(
-    alpha_long = alpha_long,
-    group_var = group_var,
-    day_var = day_var,
-    alpha_indices = alpha_indices
-)
-
-#############################################################
-## Display statistical summary
-#############################################################
-
-cat("\n")
-cat("=========================================\n")
-cat(" Alpha diversity statistical summary\n")
-cat("=========================================\n\n")
-
-print(alpha_stats$summary)
-
-#############################################################
-## Export statistical results
-#############################################################
-#############################################################
-## Prepare annotations
-#############################################################
-
-annotations <- prepare_alpha_annotations(alpha_stats)
-
-annotations$comparisons <- Map(
-  c,
-  annotations$group1,
-  annotations$group2
-)
-
-#############################################################
-## Export statistics
-#############################################################
-
-annotations_export <- annotations %>%
-  dplyr::select(-comparisons)
-
-export_alpha_statistics(
-    summary = alpha_stats$summary,
-    posthoc = annotations_export,
-    experiment = experiment
-)
-
 #############################################################
 ## Order indices
 #############################################################
 
 alpha_long$Index <- factor(
-
   alpha_long$Index,
-
   levels = alpha_indices
-
 )
-
-
 #############################################################
 ## Check table
 #############################################################
@@ -241,6 +182,21 @@ head(alpha_df)
 str(alpha_df)
 
 summary(alpha_df)
+
+#############################################################
+## Export alpha diversity table
+#############################################################
+
+write.csv(
+  alpha_df,
+  file = paste0(
+    ifelse(is.null(experiment),
+           "Alpha_diversity_values",
+           paste0(experiment, "_Alpha_diversity_values")),
+    ".csv"
+  ),
+  row.names = FALSE
+)
 
 
 #############################################################
@@ -336,11 +292,5 @@ labs(
 )+
 
 microbiome_theme()
-
-alpha_plot <- add_alpha_annotations(
-    plot = alpha_plot,
-    annotations = annotations,
-    alpha_long = alpha_long
-)
 
 alpha_plot
