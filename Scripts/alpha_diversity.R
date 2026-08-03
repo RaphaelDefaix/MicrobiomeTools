@@ -166,6 +166,14 @@ alpha_long <- alpha_df %>%
 
   )
 
+position_table <- alpha_long %>%
+    distinct(
+        Index,
+        !!sym(day_var),
+        !!sym(group_var)
+    )
+
+
 #############################################################
 ## Statistical analysis
 #############################################################
@@ -176,6 +184,37 @@ alpha_stats <- run_alpha_statistics(
     day_var = day_var,
     alpha_indices = alpha_indices
 )
+
+#############################################################
+## Display statistical summary
+#############################################################
+
+cat("\n")
+cat("=========================================\n")
+cat(" Alpha diversity statistical summary\n")
+cat("=========================================\n\n")
+
+print(alpha_stats$summary)
+
+#############################################################
+## Export statistical results
+#############################################################
+
+write.csv(
+  alpha_stats$summary,
+  file = "Alpha_diversity_statistics_summary.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  alpha_stats$details,
+  file = "Alpha_diversity_posthoc_results.csv",
+  row.names = FALSE
+)
+
+cat("Results exported:\n")
+cat(" - Alpha_diversity_statistics_summary.csv\n")
+cat(" - Alpha_diversity_posthoc_results.csv\n\n")
 
 #############################################################
 ## Prepare annotations
@@ -330,7 +369,13 @@ labs(
   y = NULL
 
 )+
- 
+
 microbiome_theme()
+
+alpha_plot <- add_alpha_annotations(
+    plot = alpha_plot,
+    annotations = annotations,
+    alpha_long = alpha_long
+)
 
 alpha_plot
