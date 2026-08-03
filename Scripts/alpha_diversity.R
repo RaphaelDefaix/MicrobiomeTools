@@ -41,6 +41,7 @@ library(ggplot2)
 library(ggsignif)
 library(tidyr)
 
+source("R/export_alpha_statistics.R")
 source("R/microbiome_palette.R")
 source("R/microbiome_theme.R")
 source("R/run_alpha_statistics.R")
@@ -55,7 +56,8 @@ group_var <- "group"
 day_var <- "day"
 
 group_order <- c(
-  "untreated",
+  "Untreated",
+  "Antibiotic",
   "WT",
   "lsrK",
   "lsrR"
@@ -104,8 +106,8 @@ if (!is.null(experiment)) {
 
 alpha_indices <- c(
   "Observed",
-  "Chao1",
-  "Shannon"
+  "Shannon",
+  "InvSimpson"
 )
 
 
@@ -166,13 +168,6 @@ alpha_long <- alpha_df %>%
 
   )
 
-position_table <- alpha_long %>%
-    distinct(
-        Index,
-        !!sym(day_var),
-        !!sym(group_var)
-    )
-
 
 #############################################################
 ## Statistical analysis
@@ -199,23 +194,6 @@ print(alpha_stats$summary)
 #############################################################
 ## Export statistical results
 #############################################################
-
-write.csv(
-  alpha_stats$summary,
-  file = "Alpha_diversity_statistics_summary.csv",
-  row.names = FALSE
-)
-
-write.csv(
-  alpha_stats$details,
-  file = "Alpha_diversity_posthoc_results.csv",
-  row.names = FALSE
-)
-
-cat("Results exported:\n")
-cat(" - Alpha_diversity_statistics_summary.csv\n")
-cat(" - Alpha_diversity_posthoc_results.csv\n\n")
-
 #############################################################
 ## Prepare annotations
 #############################################################
@@ -229,30 +207,17 @@ annotations$comparisons <- Map(
 )
 
 #############################################################
-## Calculate annotation positions
+## Export statistics
 #############################################################
 
-y_positions <- alpha_long %>%
-  group_by(Index, .data[[day_var]]) %>%
-  summarise(
-    ymax = max(Value, na.rm = TRUE),
-    .groups = "drop"
-  )
+annotations_export <- annotations %>%
+  dplyr::select(-comparisons)
 
-annotations <- annotations %>%
-  left_join(
-    y_positions,
-    by = c(
-      "Index",
-      "Day" = day_var
-    )
-  ) %>%
-  group_by(Index, Day) %>%
-  mutate(
-    y.position = ymax * (1.05 + 0.05 * (row_number() - 1))
-  ) %>%
-  ungroup()
-
+export_alpha_statistics(
+    summary = alpha_stats$summary,
+    posthoc = annotations_export,
+    experiment = experiment
+)
 
 #############################################################
 ## Order indices
