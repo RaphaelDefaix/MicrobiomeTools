@@ -38,6 +38,7 @@ figure_title <- paste(
 library(phyloseq)
 library(dplyr)
 library(ggplot2)
+library(ggsignif)
 library(tidyr)
 
 source("R/microbiome_palette.R")
@@ -148,6 +149,7 @@ alpha_df[[day_var]] <- factor(
   alpha_df[[day_var]],
   levels = day_order
 )
+
 #############################################################
 ## Convert to long format
 #############################################################
@@ -180,6 +182,12 @@ alpha_stats <- run_alpha_statistics(
 #############################################################
 
 annotations <- prepare_alpha_annotations(alpha_stats)
+
+annotations$comparisons <- Map(
+  c,
+  annotations$group1,
+  annotations$group2
+)
 
 #############################################################
 ## Calculate annotation positions
@@ -322,7 +330,7 @@ labs(
   y = NULL
 
 )+
-
+ 
 microbiome_theme()
 
 alpha_plot
