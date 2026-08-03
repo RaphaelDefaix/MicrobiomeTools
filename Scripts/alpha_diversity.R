@@ -43,6 +43,7 @@ library(tidyr)
 source("R/microbiome_palette.R")
 source("R/microbiome_theme.R")
 source("R/run_alpha_statistics.R")
+source("R/prepare_alpha_annotations.R")
 
 #############################################################
 ## Parameters
@@ -173,6 +174,37 @@ alpha_stats <- run_alpha_statistics(
     day_var = day_var,
     alpha_indices = alpha_indices
 )
+
+#############################################################
+## Prepare annotations
+#############################################################
+
+annotations <- prepare_alpha_annotations(alpha_stats)
+
+#############################################################
+## Calculate annotation positions
+#############################################################
+
+y_positions <- alpha_long %>%
+  group_by(Index, .data[[day_var]]) %>%
+  summarise(
+    ymax = max(Value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+annotations <- annotations %>%
+  left_join(
+    y_positions,
+    by = c(
+      "Index",
+      "Day" = day_var
+    )
+  ) %>%
+  group_by(Index, Day) %>%
+  mutate(
+    y.position = ymax * (1.05 + 0.05 * (row_number() - 1))
+  ) %>%
+  ungroup()
 
 
 #############################################################
