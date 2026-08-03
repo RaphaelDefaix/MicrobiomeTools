@@ -1,0 +1,15 @@
+## inserting a new Metadata in a phyloseq ##
+
+metadata09 <- read.delim(
+    "Rstudio_Metadata_RD09_v2.txt",
+    sep = "\t",
+    stringsAsFactors = FALSE
+)
+
+metadata <- metadata09[
+    match(sample_names(physeq_RD09), metadata09$SampleID),
+]
+
+rownames(metadata09) <- metadata09$SampleID
+
+sample_data(physeq_RD09) <- sample_data(metadata09)
