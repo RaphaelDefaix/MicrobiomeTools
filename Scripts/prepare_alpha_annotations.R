@@ -60,6 +60,20 @@ prepare_alpha_annotations <- function(alpha_stats){
 
   }
 
+  #########################################################
+  ## Keep useful columns only
+  #########################################################
+
+  annotations <- annotations %>%
+    dplyr::select(
+      Index,
+      Day,
+      group1,
+      group2,
+      p.adj,
+      p.adj.signif
+    )
+
   return(annotations)
 
 }
