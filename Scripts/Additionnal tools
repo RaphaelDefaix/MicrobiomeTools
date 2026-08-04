@@ -23,4 +23,5 @@ stopifnot(
 
 sample_data(ps) <- sample_data(metadata_new)
 
-## ##
+## save environnement ##
+> save.image("MicrobiomeTools_workspace.RData")
