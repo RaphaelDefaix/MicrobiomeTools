@@ -1,16 +1,37 @@
+##############################################################
+## Input phyloseq object
 #############################################################
-## Input object
+
+ps <- ps_RD030910
+
+#############################################################
+## Optional: analyse one experiment only
 #############################################################
 
-ps3 <- physeq_RD09
+experiment <- NULL
 
-## Select one experiment only
-## Example:
-## experiment <- "RD09"
-##
-## Use NULL to analyse all samples
+#############################################################
+## Check input
+#############################################################
 
-experiment <- "RD09"
+if (!inherits(ps, "phyloseq")) {
+
+    stop("'ps' must be a phyloseq object.")
+
+}
+
+#############################################################
+## Select experiment
+#############################################################
+
+if (!is.null(experiment)) {
+
+    ps <- subset_samples(
+        ps,
+        exp == experiment
+    )
+
+}
 
 #############################################################
 ## Figure title
@@ -77,10 +98,10 @@ exclude_days <- NULL
 ## Check input
 #############################################################
 
-if (!inherits(ps3, "phyloseq")) {
+if (!inherits(ps, "phyloseq")) {
 
   stop(
-    "'ps3' must be a phyloseq object."
+    "'ps' must be a phyloseq object."
   )
 
 }
@@ -92,13 +113,13 @@ if (!inherits(ps3, "phyloseq")) {
 if (!is.null(experiment)) {
 
   ps <- subset_samples(
-    ps3,
+    ps,
     exp == experiment
   )
 
 } else {
 
-  ps <- ps3
+  ps <- ps
 
 }
 
