@@ -1,15 +1,24 @@
-## inserting a new Metadata in a phyloseq ##
+Export
+metadata <- data.frame(sample_data(ps))
 
-metadata09 <- read.delim(
-    "Rstudio_Metadata_RD09_v2.txt",
-    sep = "\t",
-    stringsAsFactors = FALSE
+write.csv2(
+    metadata,
+    "metadata.csv",
+    row.names = TRUE
 )
 
-metadata <- metadata09[
-    match(sample_names(physeq_RD09), metadata09$SampleID),
-]
 
-rownames(metadata09) <- metadata09$SampleID
+Import
 
-sample_data(physeq_RD09) <- sample_data(metadata09)
+metadata_new <- read.csv2(
+    "metadata.csv",
+    row.names = 1,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+)
+
+stopifnot(
+    all(rownames(metadata_new) == sample_names(ps))
+)
+
+sample_data(ps) <- sample_data(metadata_new)
