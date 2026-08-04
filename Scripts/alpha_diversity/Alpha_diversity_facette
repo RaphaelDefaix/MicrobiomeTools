@@ -1,1 +1,306 @@
-s
+##############################################################
+## Input phyloseq object
+#############################################################
+
+ps <- ps_RD030910
+
+#############################################################
+## Optional: analyse one experiment only
+#############################################################
+
+experiment <- NULL
+
+#############################################################
+## Check input
+#############################################################
+
+if (!inherits(ps, "phyloseq")) {
+    
+    stop("'ps' must be a phyloseq object.")
+    
+}
+
+#############################################################
+## Select experiment
+#############################################################
+
+if (!is.null(experiment)) {
+    
+    ps <- subset_samples(
+        ps,
+        exp == experiment
+    )
+    
+}
+
+#############################################################
+## Figure title
+#############################################################
+
+figure_title <- paste(
+    "Alpha diversity",
+    ifelse(is.null(experiment), "", experiment)
+)
+
+#############################################################
+## 1. Header
+#############################################################
+#
+#  MicrobiomeTools
+#
+#  Script      : Alpha_diversity.R
+#  Author      : Raphael Defaix
+#  Repository  : https://github.com/RaphaelDefaix/MicrobiomeTools
+#
+#  Version     : 1.0.0
+#
+#############################################################
+
+library(phyloseq)
+library(dplyr)
+library(ggplot2)
+library(ggsignif)
+library(tidyr)
+
+source("R/microbiome_palette.R")
+source("R/microbiome_theme.R")
+
+#############################################################
+## Parameters
+#############################################################
+
+group_var <- "group"
+
+day_var <- "day"
+
+group_order <- c(
+    "Untreated",
+    "Antibiotic",
+    "WT",
+    "lsrK",
+    "lsrR"
+)
+
+day_order <- c(
+    "d-4",
+    "d-1",
+    "d1",
+    "d7",
+    "d13",
+    "d19"
+)
+
+## Set to NULL to keep all days
+## Example: "d19" or c("d19", "d21")
+exclude_days <- "d19"
+
+#############################################################
+## Check input
+#############################################################
+
+if (!inherits(ps, "phyloseq")) {
+    
+    stop(
+        "'ps' must be a phyloseq object."
+    )
+    
+}
+
+#############################################################
+## Select experiment
+#############################################################
+
+if (!is.null(experiment)) {
+    
+    ps <- subset_samples(
+        ps,
+        exp == experiment
+    )
+    
+} else {
+    
+    ps <- ps
+    
+}
+
+#############################################################
+## Alpha diversity indices
+#############################################################
+
+alpha_indices <- c(
+    "Observed",
+    "Shannon",
+    "InvSimpson"
+)
+
+## Note:
+## estimate_richness() may warn if singletons have already
+## been removed. This mainly affects Chao1 estimates.
+
+#############################################################
+## Calculate alpha diversity
+#############################################################
+
+alpha_df <- estimate_richness(
+    ps,
+    measures = alpha_indices
+)
+
+#############################################################
+## Add metadata
+#############################################################
+
+metadata <- data.frame(sample_data(ps))
+
+alpha_df$Sample <- sample_names(ps)
+
+alpha_df <- dplyr::left_join(
+    alpha_df,
+    metadata,
+    by = c("Sample" = "SampleID")
+)
+
+alpha_df[[group_var]] <- factor(
+    alpha_df[[group_var]],
+    levels = group_order
+)
+
+alpha_df[[day_var]] <- factor(
+    alpha_df[[day_var]],
+    levels = day_order
+)
+
+#############################################################
+## Convert to long format
+#############################################################
+
+alpha_long <- alpha_df %>%
+    
+    pivot_longer(
+        
+        cols = all_of(alpha_indices),
+        
+        names_to = "Index",
+        
+        values_to = "Value"
+        
+    )
+
+#############################################################
+## Optional removal of selected days
+#############################################################
+
+if (!is.null(exclude_days)) {
+    
+    alpha_long <- alpha_long %>%
+        dplyr::filter(
+            !.data[[day_var]] %in% exclude_days
+        )
+    
+    alpha_long[[day_var]] <- factor(
+        alpha_long[[day_var]],
+        levels = setdiff(day_order, exclude_days)
+    )
+    
+}
+
+#############################################################
+## Order indices
+#############################################################
+
+alpha_long$Index <- factor(
+    alpha_long$Index,
+    levels = alpha_indices
+)
+#############################################################
+## Check table
+#############################################################
+
+head(alpha_df)
+
+str(alpha_df)
+
+summary(alpha_df)
+
+#############################################################
+## Export alpha diversity table
+#############################################################
+
+write.csv(
+    alpha_df,
+    file = paste0(
+        ifelse(is.null(experiment),
+               "Alpha_diversity_values",
+               paste0(experiment, "_Alpha_diversity_values")),
+        ".csv"
+    ),
+    row.names = FALSE
+)
+
+
+#############################################################
+## Plot alpha diversity
+#############################################################
+
+group_colors <- microbiome_group_palette()
+
+alpha_plot <- ggplot(
+    alpha_long,
+    aes(
+        x = .data[[day_var]],
+        y = Value,
+        fill = .data[[group_var]]
+    )
+) +
+    
+    geom_boxplot(
+        aes(group = interaction(.data[[day_var]], .data[[group_var]])),
+        alpha = 0.6,
+        colour = "black",
+        outlier.shape = NA,
+        position = position_dodge(width = 0.75),
+        width = 0.65
+    ) +
+    
+    geom_jitter(
+        aes(
+            colour = .data[[group_var]],
+            group = .data[[group_var]]
+        ),
+        position = position_jitterdodge(
+            jitter.width = 0.15,
+            dodge.width = 0.75
+        ),
+        size = 1.8,
+        alpha = 0.9
+    ) +
+    
+    facet_grid(
+        exp ~ Index,
+        scales = "free_y"
+    ) +
+    theme(
+        strip.background = element_rect(fill = "grey90"),
+        strip.text = element_text(face = "bold")
+    ) +
+    
+    scale_fill_manual(
+        values = group_colors
+    ) +
+    
+    scale_colour_manual(
+        values = group_colors
+    ) +
+    
+    facet_grid(
+        exp ~ Index,
+        scales = "free"
+    ) +
+    theme(
+        strip.background = element_rect(fill = "grey90"),
+        strip.text = element_text(face = "bold")
+    )+
+    
+    microbiome_theme()
+
+alpha_plot
