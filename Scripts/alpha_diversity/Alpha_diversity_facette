@@ -273,12 +273,7 @@ alpha_plot <- ggplot(
         ),
         size = 1.8,
         alpha = 0.9
-    ) +
-    
-    facet_grid(
-        exp ~ Index,
-        scales = "free_y"
-    ) +
+    )  +
     theme(
         strip.background = element_rect(fill = "grey90"),
         strip.text = element_text(face = "bold")
@@ -294,7 +289,7 @@ alpha_plot <- ggplot(
     
     facet_grid(
         exp ~ Index,
-        scales = "free"
+        scales = "free_y"
     ) +
     theme(
         strip.background = element_rect(fill = "grey90"),
