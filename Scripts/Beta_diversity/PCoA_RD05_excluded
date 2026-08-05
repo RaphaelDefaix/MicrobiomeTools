@@ -15,6 +15,12 @@ library(vegan)
 
 ps <- ps_RD03050910
 
+############################################################
+## Optional: analyse one experiment only
+#############################################################
+
+experiment <- NULL
+
 #############################################################
 ## Optional experiment filtering
 #############################################################
@@ -23,7 +29,7 @@ if (!is.null(experiment)) {
 
     ps <- subset_samples(
         ps,
-        exp == experiment
+        exp %in% experiment
     )
 
 }
@@ -46,6 +52,12 @@ if (!is.null(exclude_cages)) {
 }
 
 #############################################################
+## Optional filtering
+#############################################################
+
+exclude_days <- NULL
+
+#############################################################
 ## Optional day filtering
 #############################################################
 
@@ -57,12 +69,6 @@ if (!is.null(exclude_days)) {
     )
 
 }
-
-#############################################################
-## Optional: analyse one experiment only
-#############################################################
-
-experiment <- NULL
 
 #############################################################
 ## Distance
@@ -80,10 +86,16 @@ distance_method <- "bray"
 plot_by <- "cage"
 
 #############################################################
-## Optional filtering
+## Point shapes
 #############################################################
 
-exclude_days <- NULL
+shape_by <- "day"
+
+## Examples:
+## "day"
+## "group"
+## "cage"
+## NULL
 
 #############################################################
 ## Point options
@@ -251,15 +263,46 @@ if (add_ellipses) {
 ## Points
 #############################################################
 
+if (is.null(shape_by)) {
+
+    beta_plot <- beta_plot +
+        geom_point(
+            aes(fill = .data[[plot_by]]),
+            shape = point_shape,
+            colour = "black",
+            stroke = point_stroke,
+            size = point_size,
+            alpha = point_alpha
+        )
+
+} else {
+
+    beta_plot <- beta_plot +
+        geom_point(
+            aes(
+                fill = .data[[plot_by]],
+                shape = .data[[shape_by]]
+            ),
+            colour = "black",
+            stroke = point_stroke,
+            size = point_size,
+            alpha = point_alpha
+        )
+
+}
+
 beta_plot <- beta_plot +
-  geom_point(
-    aes(fill = .data[[plot_by]]),
-    shape = point_shape,
-    colour = "black",
-    stroke = point_stroke,
-    size = point_size,
-    alpha = point_alpha
-  )
+    scale_shape_manual(
+        values = c(
+            "d-4" = 21,
+            "d-1" = 22,
+            "d1"  = 23,
+            "d7"  = 24,
+            "d13" = 25,
+            "d19" = 8
+        )
+    )
+
 
 #############################################################
 ## Labels and theme
