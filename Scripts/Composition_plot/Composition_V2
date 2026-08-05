@@ -175,12 +175,12 @@ day_order <- c(
   "d13"
 )
 
-## Group order
 group_order <- c(
-  "untreated",
-  "WT",
-  "lsrK",
-  "lsrR"
+    "Untreated",
+    "Antibiotic",
+    "WT",
+    "lsrK",
+    "lsrR"
 )
 
 #############################################################
