@@ -15,11 +15,29 @@ library(vegan)
 
 ps <- ps_RD03050910
 
-############################################################
-## Optional: analyse one experiment only
+#############################################################
+## Optional filtering
 #############################################################
 
-experiment <- NULL
+experiment <- "RD03"
+
+exclude_cages <- NULL
+
+exclude_groups <- NULL
+
+exclude_days <- NULL
+
+exclude_conditions <- NULL
+
+## Examples:
+## exclude_groups <- "Untreated"
+##
+## exclude_days <- c("d-4","d-1")
+##
+## exclude_conditions <- data.frame(
+##     group = c("Antibiotic","Antibiotic","Antibiotic"),
+##     day   = c("d1","d7","d13")
+## )
 
 #############################################################
 ## Optional experiment filtering
@@ -38,10 +56,6 @@ if (!is.null(experiment)) {
 ## Optional cage filtering
 #############################################################
 
-exclude_cages <- c("RD05_cage1", "RD05_cage2")
-
-## or exclude_cages <- NULL ##
-
 if (!is.null(exclude_cages)) {
 
     ps <- subset_samples(
@@ -50,14 +64,18 @@ if (!is.null(exclude_cages)) {
     )
 
 }
-
 #############################################################
-## Optional filtering
+## Optional group filtering
 #############################################################
 
-exclude_days <- NULL
+if (!is.null(exclude_groups)) {
 
-## exclude_days <- c("d-4", "d-1") ##
+    ps <- subset_samples(
+        ps,
+        !(group %in% exclude_groups)
+    )
+
+}
 
 #############################################################
 ## Optional day filtering
@@ -69,6 +87,55 @@ if (!is.null(exclude_days)) {
         ps,
         !(day %in% exclude_days)
     )
+
+}
+
+#############################################################
+## Optional combination filtering
+#############################################################
+
+if (!is.null(exclude_conditions)) {
+
+    metadata <- data.frame(sample_data(ps))
+
+    #############################################################
+    ## Check combination variables
+    #############################################################
+
+    missing_variables <- setdiff(
+        names(exclude_conditions),
+        colnames(metadata)
+    )
+
+    if (length(missing_variables) > 0) {
+
+        stop(
+            paste(
+                "Unknown variable(s):",
+                paste(missing_variables, collapse = ", ")
+            )
+        )
+
+    }
+
+    keep <- rep(TRUE, nrow(metadata))
+
+    for (i in seq_len(nrow(exclude_conditions))) {
+
+        remove <- rep(TRUE, nrow(metadata))
+
+        for (variable in names(exclude_conditions)) {
+
+            remove <- remove &
+                metadata[[variable]] == exclude_conditions[i, variable]
+
+        }
+
+        keep <- keep & !remove
+
+    }
+
+    ps <- prune_samples(keep, ps)
 
 }
 
@@ -161,6 +228,14 @@ dist_matrix <- phyloseq::distance(
 )
 
 #############################################################
+## Metadata
+#############################################################
+
+metadata <- data.frame(sample_data(ps))
+
+metadata$SampleID <- rownames(metadata)
+
+#############################################################
 ## Statistics
 #############################################################
 
@@ -217,19 +292,14 @@ scores <- as.data.frame(ord$vectors[, 1:2])
 scores$SampleID <- rownames(scores)
 
 #############################################################
-## Metadata
+## Merge metadata
 #############################################################
-
-metadata <- data.frame(sample_data(ps))
-
-metadata$SampleID <- rownames(metadata)
 
 scores <- dplyr::left_join(
     scores,
     metadata,
     by = "SampleID"
 )
-
 
 if ("group" %in% names(scores)) {
 
@@ -245,7 +315,6 @@ if ("group" %in% names(scores)) {
 #############################################################
 
 scores$day_label <- gsub("^d", "", scores$day)
-
 
 #############################################################
 ## Percentage of explained variance
@@ -336,7 +405,7 @@ if (is.null(shape_by)) {
             aes(
                 label = gsub("^d", "", .data[[shape_by]])
             ),
-            colour = "black",
+            colour = "white",
             fontface = "bold",
             size = point_size
         )
