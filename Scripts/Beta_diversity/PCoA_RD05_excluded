@@ -57,6 +57,8 @@ if (!is.null(exclude_cages)) {
 
 exclude_days <- NULL
 
+## exclude_days <- c("d-4", "d-1") ##
+
 #############################################################
 ## Optional day filtering
 #############################################################
@@ -83,7 +85,7 @@ distance_method <- "bray"
 ## Plot colouring
 #############################################################
 
-plot_by <- "cage"
+plot_by <- "group"
 
 #############################################################
 ## Point shapes
@@ -159,6 +161,44 @@ dist_matrix <- phyloseq::distance(
 )
 
 #############################################################
+## Statistics
+#############################################################
+
+perform_permanova <- TRUE
+
+permanova_variable <- plot_by
+
+permanova_permutations <- 999
+
+#############################################################
+## PERMANOVA
+#############################################################
+
+if (perform_permanova) {
+
+    metadata$PERMANOVA_FACTOR <- metadata[[permanova_variable]]
+
+    permanova <- vegan::adonis2(
+        dist_matrix ~ PERMANOVA_FACTOR,
+        data = metadata,
+        permutations = permanova_permutations
+    )
+
+    print(permanova)
+
+    permanova_R2 <- round(permanova$R2[1], 3)
+    permanova_P  <- permanova$`Pr(>F)`[1]
+
+}
+
+title = paste0(
+    "PCoA\n",
+    "PERMANOVA (", permanova_variable, "): ",
+    "R² = ", permanova_R2,
+    ", p = ", signif(permanova_P, 3)
+)
+
+#############################################################
 ## PCoA
 #############################################################
 
@@ -199,6 +239,12 @@ if ("group" %in% names(scores)) {
     )
 
 }
+
+#############################################################
+## Labels for point annotation
+#############################################################
+
+scores$day_label <- gsub("^d", "", scores$day)
 
 
 #############################################################
@@ -268,60 +314,70 @@ if (is.null(shape_by)) {
     beta_plot <- beta_plot +
         geom_point(
             aes(fill = .data[[plot_by]]),
-            shape = point_shape,
+            shape = 21,
             colour = "black",
             stroke = point_stroke,
-            size = point_size,
-            alpha = point_alpha
+            size = point_size + 1
         )
 
 } else {
 
     beta_plot <- beta_plot +
+
         geom_point(
+            aes(fill = .data[[plot_by]]),
+            shape = 21,
+            colour = "black",
+            stroke = 0.4,
+            size = point_size + 2
+        ) +
+
+        geom_text(
             aes(
-                fill = .data[[plot_by]],
-                shape = .data[[shape_by]]
+                label = gsub("^d", "", .data[[shape_by]])
             ),
             colour = "black",
-            stroke = point_stroke,
-            size = point_size,
-            alpha = point_alpha
+            fontface = "bold",
+            size = point_size
         )
 
 }
 
-beta_plot <- beta_plot +
-    scale_shape_manual(
-        values = c(
-            "d-4" = 21,
-            "d-1" = 22,
-            "d1"  = 23,
-            "d7"  = 24,
-            "d13" = 25,
-            "d19" = 8
-        )
-    )
+group_colors <- c(
+    "Untreated" = "grey70",
+    "Antibiotic" = "grey40",
+    "WT" = "#03c2fe",
+    "lsrK" = "#02d62e",
+    "lsrR" = "#ff1130"
+)
 
+beta_plot <- beta_plot +
+    scale_colour_manual(values = group_colors) +
+    scale_fill_manual(values = group_colors)
 
 #############################################################
 ## Labels and theme
 #############################################################
 
 beta_plot <- beta_plot +
-  labs(
-    title = "PCoA",
-    x = paste0("PCoA1 (", variance[1], "%)"),
-    y = paste0("PCoA2 (", variance[2], "%)")
-  ) +
-  microbiome_theme() +
-  theme(
-    legend.title = element_text(face = "bold"),
-    plot.title = element_text(
-      hjust = 0.5,
-      face = "bold"
+    labs(
+        title = paste0(
+            "PCoA (Bray-Curtis)\n",
+            "PERMANOVA (", permanova_variable, "): ",
+            "R² = ", permanova_R2,
+            ", p = ", signif(permanova_P, 3)
+        ),
+        x = paste0("PCoA1 (", variance[1], "%)"),
+        y = paste0("PCoA2 (", variance[2], "%)")
+    ) +
+    microbiome_theme() +
+    theme(
+        legend.title = element_text(face = "bold"),
+        plot.title = element_text(
+            hjust = 0.5,
+            face = "bold"
+        )
     )
-  )
 
 #############################################################
 ## Print
