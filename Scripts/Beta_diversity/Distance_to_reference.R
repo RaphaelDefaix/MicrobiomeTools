@@ -66,16 +66,102 @@ if (distance_method %in% c("unifrac", "wunifrac")) {
 
 experiment <- NULL
 
+exclude_cages <- NULL
+
+exclude_groups <- NULL
+
 exclude_days <- NULL
 
-exclude_cages <- NULL
+#############################################################
+## Optional condition filtering
+#############################################################
+
+exclude_conditions <- NULL
+
+## Examples:
+## exclude_conditions <- data.frame(
+##     group = c("Antibiotic","Antibiotic","Antibiotic"),
+##     day   = c("d1","d7","d13")
+## )
+
+#############################################################
+## Optional experiment filtering
+#############################################################
 
 if (!is.null(experiment)) {
 
     ps <- subset_samples(
         ps,
-        exp == experiment
+        exp %in% experiment
     )
+
+}
+
+#############################################################
+## Optional cage filtering
+#############################################################
+
+if (!is.null(exclude_cages)) {
+
+    ps <- subset_samples(
+        ps,
+        !(cage %in% exclude_cages)
+    )
+
+}
+
+#############################################################
+## Optional group filtering
+#############################################################
+
+if (!is.null(exclude_groups)) {
+
+    ps <- subset_samples(
+        ps,
+        !(group %in% exclude_groups)
+    )
+
+}
+
+#############################################################
+## Optional day filtering
+#############################################################
+
+if (!is.null(exclude_days)) {
+
+    ps <- subset_samples(
+        ps,
+        !(day %in% exclude_days)
+    )
+
+}
+
+#############################################################
+## Optional condition filtering
+#############################################################
+
+if (!is.null(exclude_conditions)) {
+
+    metadata <- data.frame(sample_data(ps))
+
+    keep <- rep(TRUE, nrow(metadata))
+
+    for (i in seq_len(nrow(exclude_conditions))) {
+
+        remove <- rep(TRUE, nrow(metadata))
+
+        for (variable in names(exclude_conditions)) {
+
+            remove <- remove &
+                metadata[[variable]] == exclude_conditions[i, variable]
+
+        }
+
+        keep <- keep & !remove
+
+    }
+
+    ps <- prune_samples(keep, ps)
 
 }
 
