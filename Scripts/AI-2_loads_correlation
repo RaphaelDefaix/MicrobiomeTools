@@ -1,0 +1,367 @@
+############################################################
+## ARO112 — AI-2 vs bacterial load
+## WT / ΔlsrK / lsrR / WT + ΔlsrK
+############################################################
+
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+
+
+############################################################
+## Prepare datasets
+############################################################
+
+WT <- donnees %>%
+    filter(
+        group == "WT",
+        !is.na(loads_log10),
+        !is.na(AI.2)
+    )
+
+lsrK <- donnees %>%
+    filter(
+        group == "lsrK",
+        !is.na(loads_log10),
+        !is.na(AI.2)
+    )
+
+lsrR <- donnees %>%
+    filter(
+        group == "lsrR",
+        !is.na(loads_log10),
+        !is.na(AI.2)
+    )
+
+WT_lsrK <- donnees %>%
+    filter(
+        group %in% c("WT", "lsrK"),
+        !is.na(loads_log10),
+        !is.na(AI.2)
+    )
+
+
+############################################################
+## Linear models
+############################################################
+
+model_WT <- lm(
+    AI.2 ~ loads_log10,
+    data = WT
+)
+
+model_lsrK <- lm(
+    AI.2 ~ loads_log10,
+    data = lsrK
+)
+
+model_lsrR <- lm(
+    AI.2 ~ loads_log10,
+    data = lsrR
+)
+
+model_WT_lsrK <- lm(
+    AI.2 ~ loads_log10,
+    data = WT_lsrK
+)
+
+
+############################################################
+## Calculate slopes
+############################################################
+
+slope_WT <- coef(
+    model_WT
+)[["loads_log10"]]
+
+slope_lsrK <- coef(
+    model_lsrK
+)[["loads_log10"]]
+
+slope_lsrR <- coef(
+    model_lsrR
+)[["loads_log10"]]
+
+slope_WT_lsrK <- coef(
+    model_WT_lsrK
+)[["loads_log10"]]
+
+
+############################################################
+## Check slopes
+############################################################
+
+slope_WT
+slope_lsrK
+slope_lsrR
+slope_WT_lsrK
+
+
+############################################################
+## WT
+############################################################
+
+plot_WT <- ggscatter(
+    WT,
+    x = "loads_log10",
+    y = "AI.2",
+    add = "reg.line",
+    conf.int = TRUE,
+    size = 3,
+    color = "#3366CC"
+) +
+
+    stat_cor(
+        method = "pearson",
+        label.x.npc = 0.05,
+        label.y.npc = 0.88,
+        size = 5.5,
+        color = "#3366CC"
+    ) +
+
+    annotate(
+        "text",
+        x = 8.05,
+        y = Inf,
+        label = paste0(
+            "Slope = ",
+            round(slope_WT, 2)
+        ),
+        hjust = 0,
+        vjust = 1.5,
+        size = 5.5,
+        color = "#3366CC"
+    ) +
+
+    labs(
+        title = "ARO112 WT",
+        x = "Bacterial load (log10)",
+        y = "AI-2"
+    ) +
+
+    theme_classic(
+        base_size = 15
+    ) +
+
+    theme(
+        axis.line = element_line(
+            linewidth = 0.8
+        ),
+        axis.ticks = element_line(
+            linewidth = 0.8
+        ),
+        axis.text = element_text(
+            size = 13
+        ),
+        axis.title = element_text(
+            size = 15
+        )
+    )
+
+
+############################################################
+## ΔlsrK
+############################################################
+
+plot_lsrK <- ggscatter(
+    lsrK,
+    x = "loads_log10",
+    y = "AI.2",
+    add = "reg.line",
+    conf.int = TRUE,
+    size = 3,
+    color = "#339966"
+) +
+
+    stat_cor(
+        method = "pearson",
+        label.x.npc = 0.05,
+        label.y.npc = 0.96,
+        size = 5.5,
+        color = "#339966"
+    ) +
+
+    annotate(
+        "text",
+        x = 8.55,
+        y = Inf,
+        label = paste0(
+            "Slope = ",
+            round(slope_lsrK, 2)
+        ),
+        hjust = 0,
+        vjust = 1.5,
+        size = 5.5,
+        color = "#339966"
+    ) +
+
+    labs(
+        title = "ARO112 ΔlsrK",
+        x = "Bacterial load (log10)",
+        y = "AI-2"
+    ) +
+
+    theme_classic(
+        base_size = 15
+    ) +
+
+    theme(
+        axis.line = element_line(
+            linewidth = 0.8
+        ),
+        axis.ticks = element_line(
+            linewidth = 0.8
+        ),
+        axis.text = element_text(
+            size = 13
+        ),
+        axis.title = element_text(
+            size = 15
+        )
+    )
+
+
+############################################################
+## lsrR
+############################################################
+
+plot_lsrR <- ggscatter(
+    lsrR,
+    x = "loads_log10",
+    y = "AI.2",
+    add = "reg.line",
+    conf.int = TRUE,
+    size = 3,
+    color = "#E41A1C"
+) +
+
+    stat_cor(
+        method = "pearson",
+        label.x.npc = 0.05,
+        label.y.npc = 0.88,
+        size = 5.5,
+        color = "#E41A1C"
+    ) +
+
+    annotate(
+        "text",
+        x = 8.05,
+        y = Inf,
+        label = paste0(
+            "Slope = ",
+            round(slope_lsrR, 2)
+        ),
+        hjust = 0,
+        vjust = 1.5,
+        size = 5.5,
+        color = "#E41A1C"
+    ) +
+
+    labs(
+        title = "ARO112 lsrR",
+        x = "Bacterial load (log10)",
+        y = "AI-2"
+    ) +
+
+    theme_classic(
+        base_size = 15
+    ) +
+
+    theme(
+        axis.line = element_line(
+            linewidth = 0.8
+        ),
+        axis.ticks = element_line(
+            linewidth = 0.8
+        ),
+        axis.text = element_text(
+            size = 13
+        ),
+        axis.title = element_text(
+            size = 15
+        )
+    )
+
+
+############################################################
+## WT + ΔlsrK
+############################################################
+
+plot_WT_lsrK <- ggscatter(
+    WT_lsrK,
+    x = "loads_log10",
+    y = "AI.2",
+    add = "reg.line",
+    conf.int = TRUE,
+    size = 3,
+    color = "black"
+) +
+
+    stat_cor(
+        method = "pearson",
+        label.x.npc = 0.05,
+        label.y.npc = 0.88,
+        size = 5.5,
+        color = "black"
+    ) +
+
+    annotate(
+        "text",
+        x = 8.05,
+        y = Inf,
+        label = paste0(
+            "Slope = ",
+            round(slope_WT_lsrK, 2)
+        ),
+        hjust = 0,
+        vjust = 1.5,
+        size = 5.5,
+        color = "black"
+    ) +
+
+    labs(
+        title = "ARO112 WT + ΔlsrK",
+        x = "Bacterial load (log10)",
+        y = "AI-2"
+    ) +
+
+    theme_classic(
+        base_size = 15
+    ) +
+
+    theme(
+        axis.line = element_line(
+            linewidth = 0.8
+        ),
+        axis.ticks = element_line(
+            linewidth = 0.8
+        ),
+        axis.text = element_text(
+            size = 13
+        ),
+        axis.title = element_text(
+            size = 15
+        )
+    )
+
+
+############################################################
+## Combine plots — 2 × 2
+############################################################
+
+plot_final <- (
+    plot_WT +
+    plot_lsrK
+) /
+(
+    plot_lsrR +
+    plot_WT_lsrK
+)
+
+
+############################################################
+## Display
+############################################################
+
+plot_final
