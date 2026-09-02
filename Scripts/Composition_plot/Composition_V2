@@ -510,7 +510,10 @@ df_plot$Taxon <- factor(
 #############################################################
 
 taxon_colors <- microbiome_palette(
-    taxonomy = taxon_phylum
+    taxonomy = taxon_phylum %>%
+        filter(
+            Taxon %in% levels(df_plot$Taxon)
+        )
 )
 
 taxon_colors <- taxon_colors[
