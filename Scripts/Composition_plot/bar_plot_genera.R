@@ -9,6 +9,12 @@ library(tidyr)
 library(tibble)
 
 ############################################################
+## MicrobiomeTools functions
+############################################################
+
+source("R/create_taxon_names.R")
+
+############################################################
 ## Input
 ############################################################
 
@@ -33,105 +39,32 @@ ps.rel <- transform_sample_counts(
 )
 
 ############################################################
-## Taxonomy
+## Aggregate taxa at Genus level
 ############################################################
 
-tax_df <- as.data.frame(
-    tax_table(ps.rel),
-    stringsAsFactors = FALSE
+ps.rel <- tax_glom(
+    ps.rel,
+    taxrank = "Genus",
+    NArm = FALSE
 )
 
 ############################################################
-## Create taxon names
+## Convert phyloseq to data frame
 ############################################################
 
-tax_df$Taxon <- ifelse(
-    !is.na(tax_df$Genus) & tax_df$Genus != "",
-    as.character(tax_df$Genus),
-    paste0(
-        "Unclassified_",
-        as.character(tax_df$Family)
-    )
+df_long <- psmelt(
+    ps.rel
 )
 
-tax_df$Taxon <- gsub(
-    " ",
-    "_",
-    tax_df$Taxon
+############################################################
+## Create standardized taxon names
+############################################################
+
+df_long$Taxon <- create_taxon_names(
+    df_long,
+    "Genus"
 )
 
-tax_df$Taxon <- make.unique(
-    tax_df$Taxon
-)
-
-rownames(tax_df) <- taxa_names(ps.rel)
-
-############################################################
-## Abundance matrix
-############################################################
-
-otu_df <- as.data.frame(
-    otu_table(ps.rel)
-)
-
-if (!taxa_are_rows(ps.rel)) {
-    otu_df <- t(otu_df)
-}
-
-otu_df <- as.data.frame(otu_df)
-
-otu_df$Taxon <- tax_df[
-    rownames(otu_df),
-    "Taxon"
-]
-
-############################################################
-## Aggregate taxa
-############################################################
-
-taxon_abundance <- otu_df %>%
-    group_by(Taxon) %>%
-    summarise(
-        across(
-            everything(),
-            sum,
-            na.rm = TRUE
-        )
-    )
-
-############################################################
-## Convert to long format
-############################################################
-
-df_long <- taxon_abundance %>%
-    pivot_longer(
-        cols = -Taxon,
-        names_to = "SampleID",
-        values_to = "Abundance"
-    )
-
-############################################################
-## Add metadata
-############################################################
-
-metadata <- data.frame(
-    sample_data(ps.rel),
-    stringsAsFactors = FALSE
-)
-
-metadata$SampleID <- rownames(metadata)
-
-df_long <- df_long %>%
-    left_join(
-        metadata %>%
-            select(
-                SampleID,
-                exp,
-                day,
-                group
-            ),
-        by = "SampleID"
-    )
 
 ############################################################
 ## Keep RD03 + RD09 + RD10
@@ -145,6 +78,18 @@ df_long <- df_long %>%
             "RD10"
         )
     )
+############################################################
+## Keep d1, d7 and d13 only
+############################################################
+
+df_long <- df_long %>%
+    filter(
+        day %in% c(
+            "d1",
+            "d7",
+            "d13"
+        )
+    )
 
 ############################################################
 ## Remove missing groups
@@ -154,6 +99,20 @@ df_long <- df_long %>%
     filter(
         !is.na(group)
     )
+############################################################
+## Check metadata
+############################################################
+
+df_long %>%
+    select(
+        Sample,
+        exp,
+        day,
+        group,
+        Taxon,
+        Abundance
+    ) %>%
+    head()
 
 ############################################################
 ## Check
@@ -168,7 +127,7 @@ taxa_8 <- c(
     "Bacteroides",
     "Blautia",
     "Escherichia-Shigella",
-    "Lachnospiraceae_NK4A136_group",
+    "Lachnospiraceae NK4A136 group",
     "Parabacteroides",
     "Unclassified_Enterobacteriaceae",
     "Unclassified_Muribaculaceae"
@@ -346,4 +305,20 @@ anova_taxon <- function(
         )
     )
 }
+
+############################################################
+## Run ANOVA for all 8 taxa
+############################################################
+
+anova_results <- lapply(
+    taxa_8,
+    function(taxon) {
+        anova_taxon(
+            df_8taxa,
+            taxon
+        )
+    }
+)
+
+names(anova_results) <- taxa_8
 
