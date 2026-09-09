@@ -1,5 +1,5 @@
 ############################################################
-## TOP 6 PHYLA — RD03 + RD09 + RD10
+## TOP PHYLA — RD03 + RD09 + RD10
 ############################################################
 
 library(phyloseq)
@@ -9,19 +9,16 @@ library(tidyr)
 library(tibble)
 
 ############################################################
+## MicrobiomeTools functions
+############################################################
+
+source("R/taxonomy_database.R")
+
+############################################################
 ## Input
 ############################################################
 
 ps <- ps_RD030910
-
-############################################################
-## Groups
-############################################################
-
-sample_data(ps)$group <- factor(
-    sample_data(ps)$group,
-    levels = c("WT", "lsrK", "lsrR")
-)
 
 ############################################################
 ## Relative abundance
@@ -33,92 +30,80 @@ ps.rel <- transform_sample_counts(
 )
 
 ############################################################
-## Taxonomy — Phylum
+## Aggregate taxa at Phylum level
 ############################################################
 
-tax_df <- as.data.frame(
-    tax_table(ps.rel),
-    stringsAsFactors = FALSE
+ps.rel <- tax_glom(
+    ps.rel,
+    taxrank = "Phylum",
+    NArm = FALSE
 )
 
-tax_df$Phylum <- as.character(tax_df$Phylum)
-
 ############################################################
-## Abundance matrix
+## Convert phyloseq to data frame
 ############################################################
 
-otu_df <- as.data.frame(
-    otu_table(ps.rel)
+df_phylum <- psmelt(
+    ps.rel
 )
 
-if (!taxa_are_rows(ps.rel)) {
-    otu_df <- t(otu_df)
-}
-
-otu_df <- as.data.frame(otu_df)
-
-otu_df$Phylum <- tax_df[
-    rownames(otu_df),
-    "Phylum"
-]
-
 ############################################################
-## Remove missing Phylum
+## Standardize Phylum names
 ############################################################
 
-otu_df <- otu_df %>%
+df_phylum$Phylum <- standardize_phylum(
+    df_phylum$Phylum
+)
+
+
+############################################################
+## Keep d1, d7 and d13 only
+############################################################
+
+df_phylum <- df_phylum %>%
     filter(
-        !is.na(Phylum),
-        Phylum != ""
-    )
-
-############################################################
-## Aggregate ASVs by Phylum
-############################################################
-
-phylum_abundance <- otu_df %>%
-    group_by(Phylum) %>%
-    summarise(
-        across(
-            everything(),
-            sum,
-            na.rm = TRUE
+        day %in% c(
+            "d1",
+            "d7",
+            "d13"
         )
     )
 
 ############################################################
-## Long format
+## Keep WT, lsrK and lsrR
 ############################################################
-
-df_phylum <- phylum_abundance %>%
-    pivot_longer(
-        cols = -Phylum,
-        names_to = "SampleID",
-        values_to = "Abundance"
-    )
-
-############################################################
-## Metadata
-############################################################
-
-metadata <- data.frame(
-    sample_data(ps.rel),
-    stringsAsFactors = FALSE
-)
-
-metadata$SampleID <- rownames(metadata)
 
 df_phylum <- df_phylum %>%
-    left_join(
-        metadata %>%
-            select(
-                SampleID,
-                exp,
-                day,
-                group
-            ),
-        by = "SampleID"
+    filter(
+        group %in% c(
+            "WT",
+            "lsrK",
+            "lsrR"
+        )
     )
+
+############################################################
+## Order groups
+############################################################
+
+df_phylum$group <- factor(
+    df_phylum$group,
+    levels = c(
+        "WT",
+        "lsrK",
+        "lsrR"
+    )
+)
+
+############################################################
+## Check
+############################################################
+
+table(
+    df_phylum$exp,
+    df_phylum$day,
+    df_phylum$group
+)
 
 ############################################################
 ## Keep RD03 + RD09 + RD10
@@ -140,17 +125,24 @@ df_phylum <- df_phylum %>%
 ## Calculate mean abundance for each Phylum
 ############################################################
 
-top6_phyla <- df_phylum %>%
+phylum_abundance <- df_phylum %>%
     group_by(Phylum) %>%
     summarise(
         MeanAbundance = mean(
             Abundance,
             na.rm = TRUE
-        )
+        ),
+        .groups = "drop"
     ) %>%
     arrange(
         desc(MeanAbundance)
-    ) %>%
+    )
+
+############################################################
+## TOP 6 PHYLA
+############################################################
+
+top6_phyla <- phylum_abundance %>%
     slice_head(
         n = 6
     )
@@ -161,18 +153,10 @@ top6_phyla
 ## TOP 4 PHYLA
 ############################################################
 
-top4_phyla <- df_phylum %>%
-    group_by(Phylum) %>%
-    summarise(
-        MeanAbundance = mean(
-            Abundance,
-            na.rm = TRUE
-        )
-    ) %>%
-    arrange(
-        desc(MeanAbundance)
-    ) %>%
-    slice_head(n = 4)
+top4_phyla <- phylum_abundance %>%
+    slice_head(
+        n = 4
+    )
 
 top4_phyla
 
@@ -186,27 +170,21 @@ df_top4_phyla <- df_phylum %>%
     )
 
 ############################################################
-## Update Phylum names
+## Order Phyla
 ############################################################
 
-df_top4_phyla <- df_top4_phyla %>%
-    mutate(
-        Phylum = recode(
-            Phylum,
-            "Firmicutes" = "Bacillota",
-            "Proteobacteria" = "Pseudomonadota"
-        )
-    )
+phylum_order <- c(
+    "Bacteroidota",
+    "Bacillota",
+    "Pseudomonadota",
+    "Verrucomicrobiota"
+)
 
 df_top4_phyla$Phylum <- factor(
     df_top4_phyla$Phylum,
-    levels = c(
-        "Bacteroidota",
-        "Pseudomonadota",
-        "Verrucomicrobiota",
-        "Bacillota"
-    )
+    levels = phylum_order
 )
+
 ############################################################
 ## PLOT — TOP 4 PHYLA
 ############################################################
